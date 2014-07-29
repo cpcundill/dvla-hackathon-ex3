@@ -6,6 +6,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.GenericType;
+import com.sun.jersey.api.client.WebResource;
 import msg.Driver;
 import msg.DriverLocation;
 import msg.DriverSearchResult;
@@ -24,7 +25,7 @@ import java.util.List;
 public class SearchDriverLocationResource {
 
     @GET @Timed
-    public List<DriverLocation> search(@QueryParam("ageRange") Optional<String> ageRange) {
+    public List<DriverLocation> search(@QueryParam("ageRange") final Optional<String> ageRange) {
         final Client httpClient = Client.create();
         DriverSearchResult response = httpClient.resource("http://localhost:8280/driver")
                 .get(DriverSearchResult.class);
@@ -34,12 +35,14 @@ public class SearchDriverLocationResource {
             public DriverLocation apply(@Nullable Driver input) {
                 if (input.getAddress().getRealPostCode() != null) {
                     String url = "http://localhost:9000/postcode/" + input.getAddress().getRealPostCode();
-                    List<Postcode> postcodeList = httpClient
-                            .resource(url).get(new GenericType<List<Postcode>>() {});
-                    return new DriverLocation(input, postcodeList.get(0).coord);
-                } else {
-                    return new DriverLocation(input);
+                    WebResource resource = httpClient.resource(url);
+                    if (ageRange.isPresent())
+                        resource.queryParam("ageRange", ageRange.get());
+                    List<Postcode> postcodeList = resource.get(new GenericType<List<Postcode>>() {});
+                    if (!postcodeList.isEmpty())
+                        return new DriverLocation(input, postcodeList.get(0).coord);
                 }
+                return new DriverLocation(input);
             }
         });
     }
