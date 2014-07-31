@@ -1,6 +1,7 @@
 package msg;
 
 import java.util.List;
+import msg.postcode.service.Driver;
 
 public class DriverSearchResult {
 

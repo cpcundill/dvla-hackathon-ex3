@@ -30,9 +30,10 @@ public class SearchDriverLocationResource {
         DriverSearchResult response = httpClient.resource("http://localhost:8280/driver")
                 .get(DriverSearchResult.class);
 
-        return Lists.transform(response.getResults(), new Function<Driver, DriverLocation>() {
+        return Lists.transform(response.getResults(), new Function<msg.postcode.service.Driver, DriverLocation>() {
             @Nullable @Override
-            public DriverLocation apply(@Nullable Driver input) {
+            public DriverLocation apply(@Nullable msg.postcode.service.Driver input) {
+                Driver driver = new Driver(input, input.getBirthDetails().getDate());
                 if (input.getAddress().getRealPostCode() != null) {
                     String url = "http://localhost:9000/postcode/" + input.getAddress().getRealPostCode();
                     WebResource resource = httpClient.resource(url);
@@ -40,9 +41,9 @@ public class SearchDriverLocationResource {
                         resource.queryParam("ageRange", ageRange.get());
                     List<Postcode> postcodeList = resource.get(new GenericType<List<Postcode>>() {});
                     if (!postcodeList.isEmpty())
-                        return new DriverLocation(input, postcodeList.get(0).coord);
+                        return new DriverLocation(driver, postcodeList.get(0).coord);
                 }
-                return new DriverLocation(input);
+                return new DriverLocation(driver);
             }
         });
     }
